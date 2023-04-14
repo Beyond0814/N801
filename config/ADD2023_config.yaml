@@ -1,0 +1,65 @@
+defaults:
+  - all_dataset_config
+  - _self_
+
+mode : train
+
+database:
+  database_path: '/pubdata/zhongjiafeng/ADD2023/Track1/track1.2/'
+  feature_path: "/pubdata/zhongjiafeng/ADD_cache/"
+  protocol_path: '/home/zhongjiafeng/Model/N801/database/ADD2023-key/large/'
+  protocol:
+    train: ???
+    dev: ???
+  track: 'LA'
+  enable_data_augment_in_train: True
+  cut_length: 64600
+  hand_feature: False
+  normalization: True
+
+reproducible:
+  enable: True
+  random_seed : 1234
+  cudnn_deterministic_toggle: True
+  cudnn_benchmark_toggle: False
+
+model_configuration:
+  model_name: wav2vec_resnet_normalization
+  model_params: ???
+  load_checkpoint: False
+  model_path: /home/zhongjiafeng/Model/N801/outputs/2023-04-11/09-18-20/wav2vec_assist_best_dev_loss_model.pt
+  ssl_path : /pubdata/zhongjiafeng/self_supervise_model/wav2vec/xlsr2_300m.pt
+  ssl_freeze: True
+  ssl_name: XLSR
+
+training:
+  num_gpus: 2
+  batch_size: 36
+  num_workers : 4
+  shuffle : True
+  drop_last: False
+  max_num_epoch: 100
+  loss : ???
+  optimizer:
+    scheduler: cosine
+    lr_min: 0.0000001
+    base_lr: 0.00005
+    weight_decay: 0.0001
+  eval_dataset : 'ADD2023'
+  cut_length: ${database.cut_length}
+  validation_interval: 3
+
+
+log:
+  comment: ???
+  output: ???
+  score_output: ???
+
+across_evaluate:
+  batch_size : 128
+  num_workers : ${training.num_workers}
+  cut_length: 64600
+  phase : 'eval'
+  enable_dataset: ['ADD2023']
+  hand_feature: False
+  normalization: True
