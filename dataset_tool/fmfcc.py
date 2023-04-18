@@ -7,6 +7,7 @@
 
 import numpy as np
 import torch
+from utility import audio_pad
 from torch import Tensor
 import librosa
 from torch.utils.data import Dataset,DataLoader
@@ -32,23 +33,18 @@ def get_dataset(data_config, type=None):
     return train_set
 
 def get_FMFCC_dataloader(data_config, train_config):
-    protocol = data_config.protocol[type]
-    labels,file_train =genSpoof_list(dir_meta=protocol)
-    print('no. of {} trials',len(file_train))
-    train_set = Dataset_eval(
-        config = data_config,
-        file_name_list = file_train,
-        label_list = labels,
-    )
+    protocol = data_config.protocol
+    labels_dic,file_name_list =genSpoof_list(dir_meta=protocol)
+    print('FMFCC dataset has {} trials',len(file_name_list))
+    eval_set = FMFCC_dataset(data_config, file_name_list,labels_dic)
 
-    train_loader = DataLoader(
-        train_set,
+    eval_loader = DataLoader(
+        eval_set,
         batch_size = train_config.batch_size,
         num_workers= train_config.num_workers,
-        shuffle= train_config.shuffle,
-        drop_last= train_config.drop_last
+        shuffle= False,
     )
-    return train_loader
+    return eval_loader
 
 
 def genSpoof_list(dir_meta, return_meta=False):
@@ -69,39 +65,23 @@ def genSpoof_list(dir_meta, return_meta=False):
     else:
         return label_dic, file_list
 
-
-def pad(x, max_len=64600):
-    x_len = x.shape[0]
-    if x_len >= max_len:
-        start = random.randint(0,x_len-max_len)
-        return x[start:start+max_len]
-    # need to pad
-    num_repeats = int(max_len / x_len) + 1
-    padded_x = np.tile(x, (1, num_repeats))[:, :max_len][0]
-    return padded_x
-
-
-class Dataset_eval(Dataset):
-    '''
-        ASVspoof19 train dataset.
-    '''
-    def __init__(self, eval_config, dataset_meta, file_name_list, label_list):
+class FMFCC_dataset(Dataset):
+    def __init__(self, data_config,file_name_list, label_dic):
         '''self.list_IDs	: list of strings (each string: utt key),
            self.labels      : dictionary (key: utt key, value: label integer)'''
         self.file_name_list = file_name_list
-        self.label_list = label_list
-        self.base_dir = dataset_meta.base_dir
-        self.cut = eval_config.cut_length
+        self.label_dic = label_dic
+        self.base_dir = data_config.base_dir
+        self.cut = 64600
 
     def __len__(self):
         return len(self.file_name_list)
 
     def __getitem__(self, index):
         utt = self.file_name_list[index]
-        x, fs = librosa.load(self.base_dir + utt, sr=16000)
-        x_pad = pad(x, self.cut)
+        x, fs = librosa.load(self.base_dir + utt, sr=None)
+        x_pad = audio_pad(x, self.cut)
         x = Tensor(x_pad)
-        label = self.label_list[utt]
 
         return x, utt
 

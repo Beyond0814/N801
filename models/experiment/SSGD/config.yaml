@@ -1,0 +1,21 @@
+mode : 'train'
+random_seed : 1234
+model_configuration:
+  model_type: 'resnet18'   # maddg resnet18
+  load_checkpoint: False
+  model_path: '/home/zhongjiafeng/Model/N801/pretrain/aasist/AASIST_DA.pth'
+
+training:
+  num_gpus: 1
+  batch_size: 3
+  num_workers : 4
+  shuffle : True
+  max_num_epoch: 50
+  max_iter: 4000
+  lambda_triplet: 1
+  lambda_adreal: 0.5
+  norm_flag: Ture
+  optimizer :
+    init_lr: 0.01
+    weight_decay: 5e-4
+    momentum: 0.9

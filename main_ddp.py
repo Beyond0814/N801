@@ -22,7 +22,7 @@ from omegaconf import DictConfig, OmegaConf
 import logging
 ################   custom import   ################
 import data_util.asvspoof as Data
-import model.wav2vec as Model
+import models.wav2vec as Model
 
 log = logging.getLogger(__name__)
 

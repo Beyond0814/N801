@@ -14,7 +14,7 @@ import numpy as np
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import librosa
-from model import Model,Model_with_FC
+from models import Model,Model_with_FC
 
 def genSpoof_list_meta(dir_meta):
     d_meta = []

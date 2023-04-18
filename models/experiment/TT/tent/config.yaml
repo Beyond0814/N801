@@ -1,0 +1,18 @@
+ckp_path: "/pubdata/zhongjiafeng/pretrain_model/wav2vec2.0-assist/LA_model.pth"
+pretrain_path : '/pubdata/zhongjiafeng/pretrain_model/wav2vec/xlsr2_300m.pt'
+model_name: 'wav2vec-ASSIST'
+load_checkpoint: False
+num_gpus: ???
+batch_size: 4
+num_workers: 1
+
+FMFCC_A:
+  base_dir: '/pubdata/zhongjiafeng/FMACC/FMFCC-Adataset/'
+  protocol: '/home/zhongjiafeng/Model/N801/database/FMFCC-A-keys/FMFCC-AdatasetLabel.txt'
+
+OPTIM:
+  METHOD: Adam
+  STEPS: 1
+  BETA: 0.9
+  LR: 1e-3
+  WD: 0.

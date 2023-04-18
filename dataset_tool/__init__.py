@@ -5,11 +5,11 @@
 # @time      : 3/20/2023 2:42 PM
 # @function  : the script is used to do something
 
-import data_util.asvspoof as asv
-import data_util.FMFCC as fmfcc
+import dataset_tool.asvspoof as asv
+import dataset_tool.fmfcc as fmfcc
 from torch.utils.data import DataLoader
-import data_util.compress as cpr
-import data_util.add as add
+import dataset_tool.compress as cpr
+import dataset_tool.add as add
 
 across_eval_dataset = {}
 across_eval_dataset['ASVspoof19LA'] = asv.Dataset_eval19LA

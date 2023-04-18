@@ -6,11 +6,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from model.wavlm.WavLM import WavLM,WavLMConfig
+from models.wavlm.WavLM import WavLM,WavLMConfig
 from omegaconf import OmegaConf
-from model.reference.resnet import ResNet
+from models.reference.resnet import ResNet
 from fairseq import checkpoint_utils
-from model.reference.lcnn import LCNN9
+from models.reference.lcnn import LCNN9
 
 all_model = ['Wavlm-ResNet','wav2vec2.0-FC']
 

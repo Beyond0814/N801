@@ -18,8 +18,6 @@ def produce_file_list(base, output):
             fh.write('{}\n'.format(file_name))
     fh.close()
 
-
-
 def cosine_annealing(step, total_steps, config):
     """Cosine Annealing for learning rate decay scheduler"""
     lr_min = config.lr_min
@@ -62,21 +60,17 @@ def set_random_seed(cfg):
       random_seed: integer random seed
       args: argue parser
     """
-
     # initialization
-    random_seed = cfg.reproducible.random_seed
+    random_seed = cfg.random_seed
     torch.manual_seed(random_seed)
     random.seed(random_seed)
     np.random.seed(random_seed)
     os.environ['PYTHONHASHSEED'] = str(random_seed)
 
-    cudnn_deterministic_toggle = cfg.reproducible.cudnn_deterministic_toggle
-    cudnn_benchmark_toggle = cfg.reproducible.cudnn_benchmark_toggle
-
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(random_seed)
-        torch.backends.cudnn.deterministic = cudnn_deterministic_toggle
-        torch.backends.cudnn.benchmark = cudnn_benchmark_toggle
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
     return
 
 def save_across_result(EER, tDCF, path):
@@ -99,6 +93,28 @@ def get_full_score_file(dir_meta):
 
     print('finish.')
 
+def audio_pad(x, max_len=64600):
+    x_len = x.shape[0]
+    if x_len >= max_len:
+        start = random.randint(0,x_len-max_len)
+        return x[start:start+max_len]
+    num_repeats = int(max_len / x_len) + 1
+    padded_x = np.tile(x, (1, num_repeats))[:, :max_len][0]
+    return padded_x
+def produce_scores_file(cm_score, file_list, save_path):
+    '''
+        将模型预测结果保存为score文件。
+
+    :param cm_score: 模型的预测结果，格式为np.array
+    :param file_list: 样本名，格式为np.array
+    :param save_path: 分数文件存储路径
+    :return:
+    '''
+    with open(save_path, 'a+') as fh:
+        for s, utt in zip(cm_score, file_list):
+            fh.write('{} {:.12f}\n'.format(utt, s))
+    fh.close()
+    print('Scores saved to : {}'.format(save_path))
 
 if __name__ == '__main__':
     get_full_score_file('/home/zhongjiafeng/Model/N801/database/ADD2023-key/mos_label/eval_mos.txt')

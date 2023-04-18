@@ -13,7 +13,6 @@ database:
   data_augment: False
   cut_length: 64600
 
-
 reproducible:
   enable: True
   random_seed : 1234
