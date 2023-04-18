@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 ################   custom    ################
 import data_util.asvspoof as Data
-import model.me as Model
+import models.me as Model
 ################   custom    ################
 
 log = logging.getLogger(__name__)
