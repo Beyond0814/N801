@@ -10,7 +10,7 @@
 import evaluation.evaluate_2019_LA as LA19
 import evaluation.evaluate_2021_LA as LA21
 from evaluation.evaluate_2021_DF import calculate_EER_only
-from evaluation.eval_metric import eval_to_score_file
+from evaluation.eval_metric import eval_base_score_file
 
 across_evaluation = {}
 across_evaluation['ASVspoof19LA'] = LA19.calculate_tDCF_EER

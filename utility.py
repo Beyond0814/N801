@@ -110,9 +110,25 @@ def produce_scores_file(cm_score, file_list, save_path):
     :param save_path: 分数文件存储路径
     :return:
     '''
-    with open(save_path, 'a+') as fh:
+    with open(save_path, 'w+') as fh:
         for s, utt in zip(cm_score, file_list):
-            fh.write('{} {:.12f}\n'.format(utt, s))
+            fh.write('{} {}\n'.format(utt, s))
+    fh.close()
+    print('Scores saved to : {}'.format(save_path))
+
+def produce_probability_file(cm_score, file_list, save_path):
+    '''
+        将模型预测结果保存为score文件。
+
+    :param cm_score: 模型的预测结果，格式为np.array
+    :param file_list: 样本名，格式为np.array
+    :param save_path: 分数文件存储路径
+    :return:
+    '''
+
+    with open(save_path, 'w+') as fh:
+        for s, utt in zip(cm_score, file_list):
+            fh.write('{} {} {}\n'.format(utt, s[0], s[1]))
     fh.close()
     print('Scores saved to : {}'.format(save_path))
 
