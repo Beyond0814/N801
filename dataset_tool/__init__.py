@@ -15,7 +15,7 @@ across_eval_dataset = {}
 across_eval_dataset['ASVspoof19LA'] = asv.Dataset_eval19LA
 across_eval_dataset['ASVspoof21LA'] = asv.Dataset_eval21LA
 across_eval_dataset['ASVspoof21DF'] = asv.Dataset_eval21DF
-across_eval_dataset['FMFCC_A'] = fmfcc.Dataset_eval
+across_eval_dataset['FMFCC_A'] = fmfcc.FMFCC_dataset
 across_eval_dataset['toy'] = cpr.toy_dataset
 across_eval_dataset['ADD2023'] = add.Dataset_eval
 

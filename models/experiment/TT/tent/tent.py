@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.jit
 from copy import deepcopy
+
 class Tent(nn.Module):
     """Tent adapts a model by entropy minimization during testing.
 
@@ -19,8 +20,11 @@ class Tent(nn.Module):
         self.model = model
         self.optimizer = optimizer
         self.steps = steps
-        assert steps > 0, "tent requires >= 1 step(s) to forward and update"
         self.episodic = episodic
+
+        self.init_entropy = 0
+        self.final_entropy = 0
+
 
         # note: if the model is never reset, like for continual adaptation,
         # then skipping the state copy would save memory
@@ -31,9 +35,18 @@ class Tent(nn.Module):
         if self.episodic:
             self.reset()
 
-        for _ in range(self.steps):   # 模型每次forward都利用一个batch的数据进行self.steps次迭代
-            outputs = forward_and_adapt(x, self.model, self.optimizer)
 
+        if self.steps > 0:
+            # print('start :')
+            for i in range(self.steps):   # 模型每次forward都利用一个batch的数据进行self.steps次迭代
+                outputs, loss = forward_and_adapt(x, self.model, self.optimizer)
+                if i == 0:
+                    self.init_entropy += loss
+                if i == self.steps-1:
+                    self.final_entropy += loss
+                # print('{}'.format(loss))
+        else:
+            outputs = self.model(x)
         return outputs
 
     def reset(self):
@@ -62,7 +75,7 @@ def forward_and_adapt(x, model, optimizer):
     loss.backward()
     optimizer.step()
     optimizer.zero_grad()
-    return outputs
+    return outputs, loss.item()
 
 
 def collect_params(model):
@@ -103,6 +116,11 @@ def configure_model(model):
     model.train()
     # disable grad, to (re-)enable only what tent updates
     model.requires_grad_(False)
+
+    for nm, m in model.named_modules():
+        if isinstance(m, nn.Dropout):
+            m.p = 0.0
+
     # configure norm for tent updates: enable grad + force batch statisics
     for m in model.modules():
         if isinstance(m, nn.BatchNorm2d):
@@ -127,3 +145,4 @@ def check_model(model):
                                "check which require grad"
     has_bn = any([isinstance(m, nn.BatchNorm2d) for m in model.modules()])
     assert has_bn, "tent needs normalization for its optimization"
+

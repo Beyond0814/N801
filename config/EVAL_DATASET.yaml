@@ -13,7 +13,7 @@ ASVspoof21DF:
 
 FMFCC_A:
   base_dir: '/pubdata/zhongjiafeng/FMACC/FMFCC-Adataset/'
-  protocol: '/home/zhongjiafeng/Model/N801/database/FMFCC-A-keys/FMFCC-AdatasetLabel.txt'
+  protocol: /home/zhongjiafeng/Model/N801/key/FMFCC-A-keys/FMFCC-key.txt
 
 toy:
   base_dir: '/pubdata/zhongjiafeng/Compressdataset/toy_large_ogg_16k/'

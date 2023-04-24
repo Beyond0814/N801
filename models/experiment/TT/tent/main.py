@@ -6,12 +6,13 @@
 # @function  : the script is used to do something
 import os
 os.environ["CUDA_DEVICE_ORDER"] = 'PCI_BUS_ID'
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '4,5'
 
 import torch
 from torch.nn.parallel import DataParallel
 import logging
 import tent
+from tqdm import tqdm
 
 from omegaconf import OmegaConf
 import utility as ut
@@ -27,27 +28,35 @@ def run_tent():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     base_model = Model.model(cfg,device)
+    base_model = base_model.to(device)
     base_model.load_state_dict(torch.load(cfg.ckp_path, map_location=device))
     if cfg.num_gpus > 1:
         base_model = DataParallel(base_model).to(device)
 
     model = setup_tent(base_model)
-    # TODO: creat dataloader
     eval_loader = data.get_FMFCC_dataloader(cfg['FMFCC_A'],cfg)
+
 
     all_output = []
     all_label = []
-    for batch_x, batch_y in eval_loader:
+    all_probability_output = []
+
+
+    for batch_x, batch_y in tqdm(eval_loader):
         batch_x = batch_x.to(device)
         batch_out = model(batch_x)
-        batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
 
+        batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
+        batch_all_output = batch_out.data.cpu().numpy()
+
+        all_probability_output.extend(batch_all_output)
         all_output.extend(batch_score.tolist())
         all_label.extend(batch_y)
 
-    ut.produce_scores_file(all_output,all_label,'.tent_scores.txt')
 
-
+    print('init entropy: {} , final entropy : {} '.format(model.init_entropy,model.final_entropy))
+    ut.produce_scores_file(all_output, all_label, 'tent_step_{}_scores.txt'.format(cfg.OPTIM.STEPS))
+    ut.produce_probability_file(all_probability_output, all_label, 'tent_step_{}_probability.txt'.format(cfg.OPTIM.STEPS))
 def setup_tent(model):
     """Set up tent adaptation.
 
@@ -59,8 +68,7 @@ def setup_tent(model):
     params, param_names = tent.collect_params(model)
     optimizer = setup_optimizer(params)
     tent_model = tent.Tent(model, optimizer,
-                           steps=cfg.OPTIM.STEPS,
-                           episodic=cfg.MODEL.EPISODIC)
+                           steps=cfg.OPTIM.STEPS)
     logger.info(f"model for adaptation: %s", model)
     logger.info(f"params for adaptation: %s", param_names)
     logger.info(f"optimizer for adaptation: %s", optimizer)
