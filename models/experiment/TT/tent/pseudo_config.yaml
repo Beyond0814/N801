@@ -3,19 +3,19 @@ ssl_path : "/pubdata/zhongjiafeng/self_supervise_model/wav2vec/xlsr2_300m.pt"
 model_name: 'wav2vec-ASSIST'
 load_checkpoint: ???
 num_gpus: 2
-sample_num: 1000
+sample_num: 2000
 max_iter: 3
 max_epoch: 5
 eval:
-  batch_size: 200
+  batch_size: 128
   num_workers: 4
 train:
-  batch_size: 16
+  batch_size: 32
   num_workers: 4
 FMFCC_A:
   base_dir: /pubdata/zhongjiafeng/FMACC/FMFCC-Adataset/
   protocol: /home/zhongjiafeng/Model/N801/key/FMFCC-A-keys/FMFCC-key.txt
 optim:
-  base_lr: 0.00001
+  base_lr: 1e-8
   weight_decay: 0.0001
 
