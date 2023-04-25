@@ -1,0 +1,28 @@
+mode : eval
+random_seed: 1234
+GPU_visible: "1,2"
+
+# ==================  train model ============================
+data_config:
+  description: "训练集和测试集相关配置"
+  train_protocol: ???
+  train_dir: ???
+  dev_protocol: ???
+  dev_dir: ???
+
+model_config:
+  name: ???
+  description: "模型架构相关配置"
+  load_checkpoint: ???
+  ckp_path: ???
+
+train_config:
+  description: "训练配置相关"
+  max_num_epoch: ???
+
+# ==================  eval model ============================
+eval_dataset:
+  description: "存储待测试数据集信息"
+
+evaluate:
+  description: "测试配置，如batchsize大小等"

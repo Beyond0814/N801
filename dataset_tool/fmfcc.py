@@ -64,14 +64,14 @@ def genSpoof_list(dir_meta, return_meta=False):
         return label_dic, file_list
 
 class FMFCC_dataset(Dataset):
-    def __init__(self, data_config,file_name_list, label_dic, train_mode=False):
+    def __init__(self, data_config,file_name_list, label_dic, return_label=False):
         '''self.list_IDs	: list of strings (each string: utt key),
            self.labels      : dictionary (key: utt key, value: label integer)'''
         self.file_name_list = file_name_list
         self.label_dic = label_dic
         self.base_dir = data_config.base_dir
         self.cut = 64600
-        self.train_mode = train_mode
+        self.return_label = return_label
 
     def __len__(self):
         return len(self.file_name_list)
@@ -82,7 +82,7 @@ class FMFCC_dataset(Dataset):
         x_pad = audio_pad(x, self.cut)
         x = Tensor(x_pad)
         label = self.label_dic[utt]
-        if self.train_mode:
+        if self.return_label:
             return x, label
         else:
             return x, utt

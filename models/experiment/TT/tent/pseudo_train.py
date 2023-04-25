@@ -38,14 +38,21 @@ def run_pseudo_train():
     weight = torch.FloatTensor([0.1, 0.9]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weight)
     eval_loader = data.get_FMFCC_dataloader(cfg['FMFCC_A'],cfg.eval)
-
+    sub_train_list = np.array([])
+    best_eer = 99
     for epoch in range(cfg.max_epoch):
-        sub_train_list, score_path = get_top_confidence_sample(model, eval_loader, device, sample_num=cfg.sample_num)
+        sub_train_list,selected_pseudo, score_path = get_top_confidence_sample(model, eval_loader, sub_train_list, device, cfg.sample_num, epoch)
         protocol_path = '/home/zhongjiafeng/Model/N801/key/FMFCC-A-keys/FMFCC-key.txt'
         eer, _ = ev.eval_base_protocol_and_score_file(score_path, protocol_path, 1, 1)
         logger.info('epoch [{}] - EER : {} '.format(epoch ,eer*100))
 
-        train_loader = get_train_loader_from_confidence_sample(sub_train_list,cfg['FMFCC_A'],cfg.train)
+        if eer < best_eer:
+            best_eer = eer
+            path = os.path.join(os.getcwd(), '{}_epoch_{}_eer_model.pth'.format(epoch, eer))
+            # torch.save(model.module.state_dict(), path)
+            logger.info('Flash the EER , save to {}'.format(path))
+
+        train_loader = get_train_loader_from_confidence_sample(sub_train_list,selected_pseudo,cfg['FMFCC_A'],cfg.train)
 
         for iter in range(cfg.max_iter):
             model.train()
@@ -67,15 +74,19 @@ def run_pseudo_train():
                 optimizer.step()
 
             logger.info('epoch [{}] - iter [{}] : train loss {} \n'.format(epoch ,iter,train_loss))
+        del train_loader
 
 
-
-def get_top_confidence_sample(model, eval_loader, device, sample_num):
+def get_top_confidence_sample(model, eval_loader, exclude_list, device, sample_num, epoch):
+    """
+        抽取置信度最高的`sample_num`样本，返回样本名列表
+    """
     torch.cuda.empty_cache()
     model.eval()
     all_confidence = []
     all_utt = []
     all_scores = []
+    all_pseudo = []
     with torch.no_grad():
         for batch_x, batch_y in tqdm(eval_loader, desc='eval', ncols=100):
             batch_x = batch_x.to(device)
@@ -83,25 +94,43 @@ def get_top_confidence_sample(model, eval_loader, device, sample_num):
 
             batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
             confidence_out = -(batch_out.softmax(1) * batch_out.log_softmax(1)).sum(1)
+            batch_pseudo = torch.argmax(batch_out,dim=1)
+
+            all_pseudo.extend(batch_pseudo.data.cpu().tolist())
             all_confidence.extend(confidence_out.data.cpu())
             all_utt.extend(batch_y)
             all_scores.extend(batch_score.tolist())
+
     all_confidence = np.array(all_confidence)
     all_utt = np.array(all_utt)
     indices = np.argsort(all_confidence)
-    selected_indices = indices[:sample_num]
-    selected_file_name = all_utt[selected_indices]
 
-    score_path = os.path.join(os.getcwd(),'eval_confidence_scores.txt')
+    selected_pseudo = {}
+    selected_file_name = []
+    selected_indices = []
+    for i in indices:
+        if  len(exclude_list)==0 or (all_utt[i] not in exclude_list):
+            selected_file_name.append(all_utt[i])
+            selected_indices.append(i)
+            selected_pseudo[all_utt[i]] = all_pseudo[i]
+        else:
+            continue
+
+        if len(selected_file_name) >= sample_num:
+            break
+
+    score_path = os.path.join(os.getcwd(),'epoch_{}_confidence_scores.txt'.format(epoch))
     ut.produce_scores_file(all_scores, all_utt, score_path)
+    return selected_file_name, selected_pseudo, score_path
 
-    return selected_file_name, score_path
-
-def get_train_loader_from_confidence_sample(file_list, data_config, train_config):
+def get_train_loader_from_confidence_sample(file_list, label_dic, data_config, train_config):
+    """
+        给定样本名列表，返回相应的Dataloader。
+    """
     protocol = data_config.protocol
-    labels_dic, file_name_list = data.genSpoof_list(dir_meta=protocol)
+    _, file_name_list = data.genSpoof_list(dir_meta=protocol)
     print('high-level Confidence dataset has {} trials.\n'.format(len(file_list)))
-    eval_set = data.FMFCC_dataset(data_config, file_list, labels_dic, train_mode=True)
+    eval_set = data.FMFCC_dataset(data_config, file_list, label_dic, return_label=True)
 
     train_loader = data.DataLoader(
         eval_set,
