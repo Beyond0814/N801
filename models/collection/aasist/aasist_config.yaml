@@ -1,0 +1,61 @@
+defaults:
+  - all_dataset_config
+  - _self_
+
+mode : 'eval'
+database:
+  database_path: '/pubdata/zhongjiafeng/ASVspoof_LA/'
+  protocol_path: '/pubdata/zhongjiafeng/ASVspoof_LA/ASVspoof2019_LA_cm_protocols/'
+  protocol:
+    train: ???
+    dev: ???
+  track: 'LA'
+  cut_length: 64600
+  data_augment: True
+
+reproducible:
+  enable: True
+  random_seed : 1234
+  cudnn_deterministic_toggle: False
+  cudnn_benchmark_toggle: True
+
+model_configuration:
+  model_name: 'AASIST'
+  load_checkpoint: True
+  model_path: '/home/zhongjiafeng/Model/N801/pretrain/aasist/AASIST_DA.pth'
+  nb_samp: 64600
+  first_conv: 128
+  filts : [70, [1, 32], [32, 32], [32, 64], [64, 64]]
+  gat_dims : [64, 32]
+  pool_ratios : [0.5, 0.7, 0.5, 0.5]
+  temperatures : [2.0, 2.0, 100.0, 100.0]
+
+
+training:
+  num_gpus: 2
+  batch_size: 32
+  num_workers : 4
+  shuffle : True
+  drop_last: False
+  max_num_epoch: 50
+  loss : ???
+  optimizer :
+    scheduler : 'cosine'
+    lr_min : 0.000005
+    base_lr: 0.0001
+    weight_decay: 0.0001
+  eval_dataset : 'ASVspoof19LA'
+  cut_length: ${database.cut_length}
+
+log:
+  comment: ???
+  output: ???
+  score_output: ???
+
+across_evaluate:
+  batch_size : 64
+  num_workers : ${training.num_workers}
+  cut_length: 64600
+  phase : 'eval'
+  enable_dataset: ['toy']
+

@@ -43,8 +43,27 @@ def get_dataloader(data_config, train_config, type=None):
     )
     return train_loader
 
+def get_eval_dataloader(data_config, eval_config):
+    file_list = genSpoof_list(
+        dir_meta=data_config.protocol,
+        is_train=False,
+        is_eval=True
+    )
+    eval_dataset = Dataset_eval(
+        eval_config=eval_config,
+        dataset_meta=data_config,
+        file_name_list=file_list,
+    )
 
-def genSpoof_list(dir_meta, is_train=False, is_eval=False, config_phase=None):
+    eval_loader = DataLoader(
+        eval_dataset,
+        batch_size=eval_config.batch_size,
+        num_workers=eval_config.num_workers,
+        shuffle=False,
+    )
+    return eval_loader
+
+def genSpoof_list(dir_meta, is_train=False, is_eval=False):
     d_meta = {}
     file_list = []
     with open(dir_meta, 'r') as f:

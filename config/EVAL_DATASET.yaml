@@ -19,7 +19,12 @@ toy:
   base_dir: '/pubdata/zhongjiafeng/Compressdataset/toy_large_ogg_16k/'
   protocol: '/pubdata/zhongjiafeng/Compressdataset/toy_large/sam_from_ASVspoof19_label.txt'
 
-ADD2023:
+ADD2023_1:
   base_dir: '/pubdata/zhongjiafeng/ADD2023/Track1/track1.2/wav/'
-  protocol: '/home/zhongjiafeng/Model/N801/database/ADD2023-key/Track1_2_eval_key.txt'
+  protocol: '/home/zhongjiafeng/Model/N801/key/ADD2023-key/Track1_2_1_eval_key.txt'
+  feature_dir : "/pubdata/zhongjiafeng/ADD_cache/eval/"
+
+ADD2023_2:
+  base_dir: '/pubdata/zhongjiafeng/ADD2023/Track1/wav/'
+  protocol: '/home/zhongjiafeng/Model/N801/key/ADD2023-key/Track1_2_2_eval_key.txt'
   feature_dir : "/pubdata/zhongjiafeng/ADD_cache/eval/"

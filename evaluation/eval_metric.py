@@ -100,6 +100,17 @@ def eval_base_score_file(score_path):
     eer_cm, threshold = compute_eer(bona_cm, spoof_cm)
     return eer_cm
 
+def eval_base_numpy_array(cm_score, label):
+    """
+        通过numpy数据计算eer，顺序需要一一对应
+    :param cm_score: numpy.array，预测分数
+    :param label: numpy,array，类型为int或float
+    :return:
+    """
+    bona_cm = cm_score[label == 1]
+    spoof_cm = cm_score[label == 0]
+    eer_cm, threshold = compute_eer(bona_cm, spoof_cm)
+    return eer_cm
 def obtain_asv_error_rates(tar_asv, non_asv, spoof_asv, asv_threshold):
 
     # False alarm and miss rates for ASV
