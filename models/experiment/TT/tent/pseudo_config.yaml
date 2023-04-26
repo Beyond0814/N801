@@ -2,20 +2,27 @@ ckp_path: "/pubdata/zhongjiafeng/pretrain_model/wav2vec2.0-assist/LA_model.pth"
 ssl_path : "/pubdata/zhongjiafeng/self_supervise_model/wav2vec/xlsr2_300m.pt"
 model_name: 'wav2vec-ASSIST'
 load_checkpoint: ???
-num_gpus: 2
+num_gpus: 3
 sample_num: 2000
-max_iter: 3
-max_epoch: 5
+max_iter: 2
+max_epoch: 3
+
+# model.eval() 下的dataloader配置
 eval:
-  batch_size: 128
+  batch_size: 300
   num_workers: 4
+
+# 伪标签样本训练配置
 train:
   batch_size: 32
   num_workers: 4
-FMFCC_A:
-  base_dir: /pubdata/zhongjiafeng/FMACC/FMFCC-Adataset/
-  protocol: /home/zhongjiafeng/Model/N801/key/FMFCC-A-keys/FMFCC-key.txt
+  normalization: False
+
+ADD2023_2:
+  base_dir: '/pubdata/zhongjiafeng/ADD2023/Track1/wav/'
+  protocol: '/home/zhongjiafeng/Model/N801/key/ADD2023-key/Track1_2_2_eval_key.txt'
+
 optim:
-  base_lr: 1e-8
+  base_lr: 1e-5
   weight_decay: 0.0001
 

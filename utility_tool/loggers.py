@@ -21,20 +21,21 @@ def __logfun(isfile=False):
     }
     logger = logging.getLogger()
     logger.setLevel(level=logging.INFO) # 某些python库文件中有一些DEBUG级的输出信息，如果这里设置为DEBUG，会导致console和log文件中写入海量信息
-    console_formatter = colorlog.ColoredFormatter(
-        # fmt='%(log_color)s[%(asctime)s.%(msecs)03d] %(filename)s -> %(funcName)s line:%(lineno)d [%(levelname)s] : %(message)s',
-        fmt='%(log_color)s %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
-        # datefmt='%Y-%m-%d  %H:%M:%S',
-        log_colors=log_colors_config
-    )
-    console = logging.StreamHandler()  # 输出到console的handler
-    console.setFormatter(console_formatter)
-    logger.addHandler(console)
+
+    # console_formatter = colorlog.ColoredFormatter(
+    #     # fmt='%(log_color)s[%(asctime)s.%(msecs)03d] %(filename)s -> %(funcName)s line:%(lineno)d [%(levelname)s] : %(message)s',
+    #     fmt='%(log_color)s %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
+    #     # datefmt='%Y-%m-%d  %H:%M:%S',
+    #     log_colors=log_colors_config
+    # )
+    # console = logging.StreamHandler()  # 输出到console的handler
+    # console.setFormatter(console_formatter)
+    # logger.addHandler(console)
 
     # 输出到文件
     if isfile:
         # 设置文件名
-        time_line = time.strftime('%Y_%m_%d_%H_%M', time.localtime(time.time()))
+        time_line = time.strftime('%Y_%m%d_%H%M', time.localtime(time.time()))
 
         log_path=os.path.join(os.getcwd(),time_line)
         if not os.path.exists(log_path):

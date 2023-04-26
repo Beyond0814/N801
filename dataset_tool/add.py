@@ -10,6 +10,7 @@ import torch
 from torch import Tensor
 import librosa
 from torch.utils.data import Dataset, DataLoader , DistributedSampler
+from utility_tool.utility import audio_pad
 
 def produce_evaluation_file(cm_score, file_list, save_path):
     with open(save_path, 'a+') as fh:
@@ -18,40 +19,37 @@ def produce_evaluation_file(cm_score, file_list, save_path):
     fh.close()
     print('Scores saved to : {}'.format(save_path))
 
-def get_dataloader(data_config, train_config, type=None):
+def get_dataloader(train_config, base_dir, protocol):
     assert type in ['train', 'dev'], 'parameter type is not train or dev.'
-    protocol = data_config.protocol[type]
-    labels, file_train = genSpoof_list(
+    label_dic, file_train = genSpoof_list(
         dir_meta=protocol,
         is_train=True,
         is_eval=False
     )
-    train_set = Dataset_train(
-        config=data_config,
-        file_name_list=file_train,
-        label_list=labels,
-        type=type
-    )
+    train_set = ADD2023_train(train_config,base_dir,file_train,label_dic)
 
     train_loader = DataLoader(
         train_set,
         batch_size=train_config.batch_size,
         num_workers=train_config.num_workers,
-        shuffle=train_config.shuffle,
-        drop_last=train_config.drop_last,
-        pin_memory=True
     )
     return train_loader
 
 def get_eval_dataloader(data_config, eval_config):
+    """
+        用于获得测试集的dataloader
+    :param data_config: 协议路径、数据路径等信息
+    :param eval_config: dataloader等信息
+    :return:
+    """
     file_list = genSpoof_list(
         dir_meta=data_config.protocol,
         is_train=False,
         is_eval=True
     )
-    eval_dataset = Dataset_eval(
+    eval_dataset = ADD2023_eval(
         eval_config=eval_config,
-        dataset_meta=data_config,
+        data_config=data_config,
         file_name_list=file_list,
     )
 
@@ -85,69 +83,39 @@ def genSpoof_list(dir_meta, is_train=False, is_eval=False):
         return file_list
 
 
-def pad(x, max_len=64600):
-    x_len = x.shape[0]
-    if x_len >= max_len:
-        return x[:max_len]
-    # need to pad
-    num_repeats = int(max_len / x_len) + 1
-    padded_x = np.tile(x, (1, num_repeats))[:, :max_len][0]
-    return padded_x
 
-
-class Dataset_train(Dataset):
-    '''
-        ASVspoof19 train dataset.
-    '''
-
-    def __init__(self, config, file_name_list, label_list, type=None):
-        '''self.list_IDs	: list of strings (each string: utt key),
-           self.labels      : dictionary (key: utt key, value: label integer)'''
-        assert type in ['train', 'dev']
+class ADD2023_train(Dataset):
+    def __init__(self, train_config, base_dir, file_name_list, label_dic):
         self.file_name_list = file_name_list
-        self.label_list = label_list
-        self.base_dir = config.database_path + '{}/wav/'.format(type)
-        self.fea_dir = config.feature_path + '{}/'.format(type)
-        self.cut = config.cut_length
-        self.DA = config.enable_data_augment_in_train
-        self.hand_feature = config.hand_feature
-        self.normalization = config.normalization
+        self.label_dic = label_dic
+        self.base_dir = base_dir
+        self.normalization = train_config.normalization
 
     def __len__(self):
         return len(self.file_name_list)
 
     def __getitem__(self, index):
         utt = self.file_name_list[index]
-        if self.hand_feature:
-            x = torch.load(self.fea_dir + utt)
-            r = (self.cut//x.shape[0]) + 1
-            x = x.repeat(r,1)
-            x = x[:self.cut,:].float()
-        else:
-            x, fs = librosa.load(self.base_dir + utt, sr=16000)
-            x_pad = pad(x, self.cut)
-            x = Tensor(x_pad)
-            if self.normalization:
-                x = self.normalize(x)
-        label = self.label_list[utt]
+        x, fs = librosa.load(self.base_dir + utt, sr=None)
+        x_pad = audio_pad(x)
+        x = Tensor(x_pad)
+        if self.normalization:
+            x = self.__normalize(x)
+        label = self.label_dic[utt]
         return x, label
 
-    def normalize(self,wav):
+    def __normalize(self,wav):
         mean = wav.mean()
         std = wav.std()
         wav_normalize = (wav - mean) / std
         wav_normalize = torch.clamp(wav_normalize, min=-1, max=1)
         return wav_normalize
 
-class Dataset_eval(Dataset):
-    def __init__(self, eval_config, dataset_meta, file_name_list):
-        '''self.list_IDs	: list of strings (each string: utt key),
-           self.labels      : dictionary (key: utt key, value: label integer)'''
+class ADD2023_eval(Dataset):
+    def __init__(self, eval_config, data_config, file_name_list):
         self.file_name_list = file_name_list
-        self.base_dir = dataset_meta.base_dir
-        self.cut = eval_config.cut_length
-        self.fea_dir = dataset_meta.feature_dir
-        self.hand_feature = eval_config.hand_feature
+        self.base_dir = data_config.base_dir
+        self.fea_dir = data_config.feature_dir
         self.normalization = eval_config.normalization
 
     def __len__(self):
@@ -155,21 +123,14 @@ class Dataset_eval(Dataset):
 
     def __getitem__(self, index):
         utt = self.file_name_list[index]
-        if self.hand_feature:
-            print('using hand feature as input tensor.')
-            x = torch.load(self.fea_dir + utt)
-            r = (self.cut//x.shape[0]) + 1
-            x = x.repeat(r,1)
-            x = x[:self.cut,:].float()
-        else:
-            x, fs = librosa.load(self.base_dir + utt, sr=16000)
-            x_pad = pad(x, self.cut)
-            x = Tensor(x_pad)
-            if self.normalization:
-                x = self.normalize(x)
+        x, fs = librosa.load(self.base_dir + utt, sr=None)
+        x_pad = audio_pad(x)
+        x = Tensor(x_pad)
+        if self.normalization:
+            x = self.__normalize(x)
         return x, utt
 
-    def normalize(self,wav):
+    def __normalize(self,wav):
         mean = wav.mean()
         std = wav.std()
         wav_normalize = (wav - mean) / std
