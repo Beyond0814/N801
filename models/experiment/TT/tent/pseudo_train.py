@@ -6,23 +6,23 @@
 # @function  : the script is used to do something
 import os
 os.environ["CUDA_DEVICE_ORDER"] = 'PCI_BUS_ID'
-os.environ['CUDA_VISIBLE_DEVICES'] = '1,2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2'
 
 import torch
 import torch.nn as nn
 from torch.nn.parallel import DataParallel
-import logging
 from tqdm import tqdm
 import evaluation.eval_metric as ev
 from omegaconf import OmegaConf
-import utility as ut
+import utility_tool.utility as ut
 import numpy as np
 # ===============================
-import dataset_tool.fmfcc as data
+import dataset_tool.add as Data
 import models.collection.aasist.wav2vec_aasist as Model
 # ===============================
-logger = logging.getLogger(__name__)
 cfg = OmegaConf.load('./pseudo_config.yaml')
+from utility_tool.loggers import log
+# 顺序不能颠倒,log模块一定要最后import
 
 
 def run_pseudo_train():
@@ -31,28 +31,29 @@ def run_pseudo_train():
     model = Model.model(cfg,device)
     model = model.to(device)
     model.load_state_dict(torch.load(cfg.ckp_path, map_location=device))
+    log.info('model is loaded by {}'.format(cfg.ckp_path))
     if cfg.num_gpus > 1:
         model = DataParallel(model).to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.optim.base_lr, weight_decay=cfg.optim.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.optim.base_lr)
     weight = torch.FloatTensor([0.1, 0.9]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weight)
-    eval_loader = data.get_FMFCC_dataloader(cfg['FMFCC_A'],cfg.eval)
+    eval_loader = Data.get_eval_dataloader(cfg.ADD2023_2,cfg.eval)
     sub_train_list = np.array([])
     best_eer = 99
     for epoch in range(cfg.max_epoch):
         sub_train_list,selected_pseudo, score_path = get_top_confidence_sample(model, eval_loader, sub_train_list, device, cfg.sample_num, epoch)
-        protocol_path = '/home/zhongjiafeng/Model/N801/key/FMFCC-A-keys/FMFCC-key.txt'
-        eer, _ = ev.eval_base_protocol_and_score_file(score_path, protocol_path, 1, 1)
-        logger.info('epoch [{}] - EER : {} '.format(epoch ,eer*100))
+        # protocol_path = '/home/zhongjiafeng/Model/N801/key/FMFCC-A-keys/FMFCC-key.txt'
+        # eer, _ = ev.eval_base_protocol_and_score_file(score_path, protocol_path, 1, 1)
+        # logger.info('epoch [{}] - EER : {} '.format(epoch ,eer*100))
+        #
+        # if eer < best_eer:
+        #     best_eer = eer
+        #     path = os.path.join(os.getcwd(), '{}_epoch_{}_eer_model.pth'.format(epoch, eer))
+        #     # torch.save(model.module.state_dict(), path)
+        #     logger.info('Flash the EER , save to {}'.format(path))
 
-        if eer < best_eer:
-            best_eer = eer
-            path = os.path.join(os.getcwd(), '{}_epoch_{}_eer_model.pth'.format(epoch, eer))
-            # torch.save(model.module.state_dict(), path)
-            logger.info('Flash the EER , save to {}'.format(path))
-
-        train_loader = get_train_loader_from_confidence_sample(sub_train_list,selected_pseudo,cfg['FMFCC_A'],cfg.train)
+        train_loader = get_train_loader_from_confidence_sample(sub_train_list,selected_pseudo,cfg.ADD2023_2,cfg.train)
 
         for iter in range(cfg.max_iter):
             model.train()
@@ -73,9 +74,12 @@ def run_pseudo_train():
                 batch_loss.backward()
                 optimizer.step()
 
-            logger.info('epoch [{}] - iter [{}] : train loss {} \n'.format(epoch ,iter,train_loss))
+            log.critical('epoch [{}] - iter [{}] : train loss {} '.format(epoch ,iter,train_loss))
         del train_loader
 
+    # Final test
+    sub_train_list, selected_pseudo, score_path = get_top_confidence_sample(model, eval_loader, sub_train_list, device,
+                                                                            cfg.sample_num, 99)
 
 def get_top_confidence_sample(model, eval_loader, exclude_list, device, sample_num, epoch):
     """
@@ -127,12 +131,9 @@ def get_train_loader_from_confidence_sample(file_list, label_dic, data_config, t
     """
         给定样本名列表，返回相应的Dataloader。
     """
-    protocol = data_config.protocol
-    _, file_name_list = data.genSpoof_list(dir_meta=protocol)
-    print('high-level Confidence dataset has {} trials.\n'.format(len(file_list)))
-    eval_set = data.FMFCC_dataset(data_config, file_list, label_dic, return_label=True)
-
-    train_loader = data.DataLoader(
+    log.info('high-level Confidence dataset has {} trials.'.format(len(file_list)))
+    eval_set = Data.ADD2023_train(train_config,data_config.base_dir, file_list, label_dic)
+    train_loader = Data.DataLoader(
         eval_set,
         batch_size=train_config.batch_size,
         num_workers=train_config.num_workers,
@@ -141,5 +142,6 @@ def get_train_loader_from_confidence_sample(file_list, label_dic, data_config, t
     return train_loader
 
 if __name__ == '__main__':
+    log.info('------------------- START -------------------')
     run_pseudo_train()
-    print('------------------- Finish -------------------')
+    log.info('------------------- FINISH -------------------')

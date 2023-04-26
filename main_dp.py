@@ -7,7 +7,6 @@ from tensorboardX import SummaryWriter
 from torch.nn.parallel import DataParallel
 
 import utility_tool.utility as ut
-from utility_tool.loggers import log
 import evaluation.eval_metric as ev
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
@@ -16,6 +15,7 @@ from tqdm import tqdm
 import dataset_tool.asvspoof as Data
 import models.collection.aasist.wav2vec_aasist as Model
 cfg = OmegaConf.load('./template_config.yaml')
+from utility_tool.loggers import log
 ################   custom    ################
 
 
@@ -188,5 +188,5 @@ def main(cfg: DictConfig):
         evaluate(cfg)
 
 if __name__ == '__main__':
-    main()
+    main(cfg)
     log.info("Congraduation! The Prgram runing finish.^_^!!!")
